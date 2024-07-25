@@ -1,0 +1,312 @@
+{
+	"globals" :
+	{
+		"SSL" :
+		{
+			"verify_server_cert" : true,
+			"verify_server_name" : true,
+			"key_path" : "/etc/pki/tls/private/splunk.key",
+			"cert_path" : "/etc/pki/tls/certs/splunk.cert",
+			"bundle_path" : "/etc/pki/tls/private/splunk.pem",
+			"trust_chain_path" : "/etc/pki/tls/certs/splunk-trust-chain.pem",
+			"dh_file_path" : "/etc/pki/tls/private/splunk-dh.pem",
+			"crl_path" : "/etc/pki/tls/crl/splunk-crl.pem",
+			"cipher_suites" :
+			[
+				"ECDHE-RSA-AES256-GCM-SHA384",
+				"ECDHE-ECDSA-AES256-GCM-SHA384",
+				"TLS_AES_256_GCM_SHA384"
+			],
+			"ecdh_curves" : ["secp521r1","secp384r1"],
+			"ssl_versions" : ["tls1.2","tls1.3"],
+			"client_ssl_versions" : ["tls1.2","tls1.3"],
+			"client_compression": true,
+			"splunkd_client_compression": true,
+			"ssl_compression": true,
+			"verify_crl" : true
+		},
+		"prefix" : "EXAMPLE_",
+		"postfix" : "_all",
+		"apps" :
+		[
+			{
+				"template" : "outputs_internal_fwd",
+				"default_group": "idx_c1",
+				"ACK" : true,
+				"max_q_size" : "4GB",
+				"force_time_lb" : true,
+				"time_lb_freq" : 10,
+				"volume_lb" : 52428800,
+				"write_timeout" : 60,
+				"connection_timeout" : 10,
+				"groups" :
+				[
+					{
+						"name" : "idx_c1",
+						"peers" :
+						[
+							{"fqdn" : "{{idx_c1.idx1.fqdn}}", "port":9997, "SAN" : "{{idx_c1.idx1.fqdn}}" },
+							{"fqdn" : "{{idx_c1.idx2.fqdn}}", "port":9997, "SAN" : "{{idx_c1.idx2.fqdn}}" },
+							{"fqdn" : "{{idx_c1.idx3.fqdn}}", "port":9997, "SAN" : "{{idx_c1.idx3.fqdn}}" }
+						]
+					}
+				]
+			},
+			{ "template" : "server_ssl", "SSL" : {} },
+			{ "template" : "server_ssl_enable" },
+			{ "template" : "web_disable" },
+			{ "template" : "web_ssl", "SSL" : {} },
+			{ "template" : "web_ssl_enable" },
+			{ "template" : "web_hsts_enable" }
+		]
+	},
+	"groups" :
+	[
+		{
+			"name" : "main_indexer_cluster",
+			"path" : "idx_c1",
+			"prefix" : "EXAMPLE_",
+			"postfix" : "_idx_c1",
+			"apps" :
+			[
+				{
+					"template" : "inputs_internal_fwd",
+                    "inputs":
+                    [
+                        {
+                            "port" : 9997,
+                            "require_client_cert" : true,
+                            "peer_SANs":
+                            [
+                                "{{hf_c1.hf1.fqdn}}",
+                                "{{hf_c1.hf2.fqdn}}",
+                                "{{sh_c1.sh1.fqdn}}",
+                                "{{sh_c1.sh2.fqdn}}",
+                                "{{sh_c1.sh3.fqdn}}",
+                                "{{sh.sh1.fqdn}}",
+                                "{{idx_c1.mn1.fqdn}}",
+                                "{{idx_c1.mn2.fqdn}}",
+                                "{{mgmt.ds1.fqdn}}"
+                            ]
+					    }
+                    ]
+				},
+				{ "name" : "EXAMPLE_outputs_internal_fwd_all", "skip" : true },
+				{ "template" : "server_ssl_san", "peers" :  ["mn1.example.com", "mn2.example.com"]},
+				{
+					"template" : "indexes",
+					"prefix" : "CHANGEME-COMPANY-NAME_",
+					"global_hot_volume_path" : "/var/opt/splunk/data/hot",
+					"global_hot_volume_name" : "idx_global_hot",
+					"global_hot_volume_max_size" : 4096,
+					"global_cold_volume_path" : "/var/opt/splunk/data/cold",
+					"global_cold_volume_name" : "idx_global_cold",
+					"global_cold_volume_max_size" : 4096,
+					"global_summary_volume_path" : "/var/opt/splunk/data/summary",
+					"global_summary_volume_name" : "idx_global_summary",
+					"global_summary_volume_max_size" : 4096,
+					"hot_volumes" : true,
+					"cold_volumes" : true,
+					"summary_volumes" : true,
+					"datamodel_summary_volumes" : true,
+					"indexes" : 
+					[
+						{
+							"name" : "default_hec_index",
+							"max_size" : 1024,
+							"replication_factor" : "auto",
+							"tsidx_reduction" : false,
+							"home_path" : "$SPLUNK_DB/default_hec_index/db",
+							"cold_path" : "$SPLUNK_DB/default_hec_index/colddb",
+							"thawed_path" : "$SPLUNK_DB/default_hec_index/thaweddb",
+							"data_integrity_control" : false,
+							"summary_max_size" : 8,
+							"hot_max_size" : 512,
+							"cold_max_size" : 512
+						},
+						{ "name" : "default_lastchance", "max_size" : 1024, "summary_max_size" : 8, "hot_max_size" : 512, "cold_max_size" : 512, "datamode_summary_max_size": 512 },
+						{ "name" : "default_example_com", "max_size" : 2048, "summary_max_size" : 8, "hot_max_size" : 1024, "cold_max_size" : 1024, "datamode_summary_max_size": 1024 }
+					]
+				},
+				{
+					"template" : "server_indexer_replication_ssl",
+					"SSL" : {},
+					"replication_ports_ssl" :
+					[
+						{
+							"port" : 9100,
+							"SSL" :{ "verify_server_cert" : true }
+						}
+					]
+				},
+				{
+					"template" : "server_indexer_replication_ssl_client_san_check",
+					"replication_ports_ssl" :
+					[
+						{
+							"port" : 9100,
+							"require_client_cert" : true,
+							"peers" :
+							[
+                                "{{idx_c1.idx1.fqdn}}",
+                                "{{idx_c1.idx2.fqdn}}",
+                                "{{idx_c1.idx3.fqdn}}"
+							]
+						}
+					]
+				}
+				
+			]
+		},
+		{
+			"name" : "main_heavy_forwarder_cluster",
+			"path" : "hf_c1",
+			"prefix" : "EXAMPLE_",
+			"postfix" : "_hf_c1",
+			"apps" :
+			[
+				{
+					"template" : "splunk_httpinput",
+					"prefix" : "",
+					"postfix" : "",
+					"enabled" : true,
+					"ssl" : true,
+					"port" : 8088,
+					"index" : "default_hec_index",
+					"sourcetype" : "default_hec_sourcetype",
+					"max_sockets" : 2048,
+					"max_threads" : 4,
+					"outputgroup" : null,
+					"tokens" : 
+					[
+					]
+				},
+				{
+					"template" : "splunk_httpinput_inputs",
+					"tokens" : 
+					[
+						{
+							"name" : "rsyslog-workers-1",
+							"disabled" : false,
+							"token" : "{guid}",
+							"connection_host" : "none",
+							"source" : "rsyslog_workers_1_hec",
+							"persistentQueueSize" : "100MB",
+							"queueSize" : "256KB"
+						}
+					]
+				},
+				{
+					"template" : "server_ssl_san",
+					"peers" : 
+					[
+						"{{mgmt.ds1.fqdn}}",
+						"{{idx_c1.mn1.fqdn}}",
+						"{{idx_c1.mn2.fqdn}}",
+						"{{idx_c1.mn.fqdn}}"
+					]
+				}
+			]
+		},
+		{
+			"name" : "standalone_search_head",
+			"path" : "sh",
+			"prefix" : "EXAMPLE_",
+			"postfix" : "_sh",
+			"apps" :
+			[
+				{
+					"template" : "server_ssl_san",
+					"peers" : 
+					[
+                        "{{idx_c1.idx1.fqdn}}",
+                        "{{idx_c1.idx2.fqdn}}",
+                        "{{idx_c1.idx3.fqdn}}",
+						"{{idx_c1.mn1.fqdn}}",
+						"{{idx_c1.mn2.fqdn}}",
+						"{{idx_c1.mn.fqdn}}"
+					]
+				},
+				{ "template" : "server_kvstore_dbpath", "path" : "/var/opt/splunk/data/kvstore"},
+				{ "template" : "web_enable" },
+				{ "name" : "EXAMPLE_splunk_config_web_disable_all", "skip" : true }
+			]
+		},
+		{
+			"name" : "main_search_head_cluster",
+			"path" : "sh_c1",
+			"prefix" : "EXAMPLE_",
+			"postfix" : "_sh_c1",
+			"apps" :
+			[
+				{
+					"template" : "server_ssl_san",
+					"peers" : 
+					[
+                        "{{idx_c1.idx1.fqdn}}",
+                        "{{idx_c1.idx2.fqdn}}",
+                        "{{idx_c1.idx3.fqdn}}",
+						"{{idx_c1.mn1.fqdn}}",
+						"{{idx_c1.mn2.fqdn}}",
+						"{{idx_c1.mn.fqdn}}"
+					]
+				},
+				{ "template" : "server_kvstore_dbpath", "path" : "/var/opt/splunk/data/kvstore"},
+				{ "template" : "web_enable" },
+				{ "name" : "EXAMPLE_splunk_config_web_disable_all", "skip" : true }
+			]
+		},
+		{
+			"name" : "main_search_head_cluster_deployers",
+			"path" : "sh_c1_dep",
+			"prefix" : "EXAMPLE_",
+			"postfix" : "_sh_c1_dep",
+			"apps" :
+			[
+				{
+					"template" : "server_ssl_san",
+					"peers" : 
+					[
+                        "{{sh_c1.sh1.fqdn}}",
+                        "{{sh_c1.sh2.fqdn}}",
+                        "{{sh_c1.sh3.fqdn}}",
+                        "{{sh.sh1.fqdn}}",
+						"{{idx_c1.mn1.fqdn}}",
+						"{{idx_c1.mn2.fqdn}}",
+						"{{idx_c1.mn.fqdn}}"
+					]
+				},
+				{ "template" : "web_enable" },
+				{ "template" : "server_deployer_push_threads_auto" },
+				{ "name" : "EXAMPLE_web_disable_all", "skip" : true }
+			]
+		},
+		{
+			"name" : "manager_nodes_for_idx_c1",
+			"path" : "idx_c1_mn",
+			"prefix" : "EXAMPLE_",
+			"postfix" : "_idx_c1_mn",
+			"apps" :
+			[
+				{
+					"template" : "server_ssl_san",
+					"peers" : 
+					[
+                        "{{idx_c1.idx1.fqdn}}",
+                        "{{idx_c1.idx2.fqdn}}",
+                        "{{idx_c1.idx3.fqdn}}",
+                        "{{sh_c1.sh1.fqdn}}",
+                        "{{sh_c1.sh2.fqdn}}",
+                        "{{sh_c1.sh3.fqdn}}",
+                        "{{sh.sh1.fqdn}}",
+						"{{idx_c1.mn1.fqdn}}",
+						"{{idx_c1.mn2.fqdn}}",
+						"{{idx_c1.mn.fqdn}}"
+					]
+				},
+				{ "template" : "web_enable" },
+				{ "name" : "EXAMPLE_web_disable_all", "skip" : true }
+			]
+		}
+	]
+}
