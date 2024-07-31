@@ -8,8 +8,8 @@ access	= read : [ {{permission.read|default("*",true)|join(", ")}} ], write : [ 
 	{%- if permission.export_system is defined %}
 		{%- if permission.export_system %}
 export	= system
-		{%-elif not permission.export_system %}
-export	= system
+		{%- else %}
+export	= none
 		{%-endif%}
 	{%-endif%}
 	{%- if permission.owner is defined %}	
