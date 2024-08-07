@@ -1,0 +1,132 @@
+{
+	"globals" :
+	{
+		"SSL" :
+		{
+		},
+		"prefix" : "A_000001_",
+		"suffix" : ""
+	},
+	"groups" :
+	[
+		{
+			"name" : "test_authorize_roles_1",
+			"suffix" : "_allowed_indexes_1",
+			"apps" :
+			[
+				{
+					"template": "authorize_roles",
+					"roles": 
+					[
+						{
+							"name": "i_bar_read",
+							"search_allowed_indexes":
+							[
+								"bar_foo"
+							]
+						}
+					]
+				}
+			]
+		},{
+			"name" : "test_authorize_roles_2",
+			"suffix" : "_allowed_indexes_2",
+			"apps" :
+			[
+				{
+					"template": "authorize_roles",
+					"roles": 
+					[
+						{
+							"name": "i_foo_read",
+							"search_allowed_indexes":
+							[
+								"audit_foo",
+								"auth_foo",
+								"dhcp_foo",
+								"fw_foo",
+								"ips_foo",
+								"op_foo",
+								"vpn_foo",
+								"misc_foo",
+								"default_foo"
+							]
+						}
+					]
+				}
+			]
+		},{
+			"name" : "test_authorize_roles_3",
+			"suffix" : "_allowed_indexes_3",
+			"apps" :
+			[
+				{
+					"template": "authorize_roles",
+					"roles": 
+					[
+						{
+							"name": "foo",
+							"search_allowed_indexes":
+							[
+								"a","bc","def","ghij","klmnop"
+							]
+						},
+						{
+							"name": "bar",
+							"search_allowed_indexes":
+							[
+								"a1","a23","a2345","a6_7","z_0987"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name" : "test_authorize_roles_4",
+			"suffix" : "_capabilities_1",
+			"apps" :
+			[
+				{
+					"template": "authorize_roles",
+					"roles": 
+					[
+						{
+							"name": "a_es_correlation_searches_manage",
+							"import":
+							[
+								"edit_search_schedule_priority",
+								"edit_search_schedule_window",
+								"edit_correlationsearches",
+								"schedule_search",
+								"edit_suppressions"
+							]
+
+						}
+					]
+				}
+			]
+		},{
+			"name" : "test_authorize_roles_5",
+			"suffix" : "_import_1",
+			"apps" :
+			[
+				{
+					"template": "authorize_roles",
+					"roles": 
+					[
+						{
+							"name": "i_all_read",
+							"import":
+							[
+								"i_foo_read",
+								"i_bar_read"
+							]
+
+						}
+					]
+				}
+			]
+		}
+	]
+}
