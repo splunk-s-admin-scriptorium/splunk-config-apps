@@ -116,7 +116,7 @@ def fix_group(group, globals):
 	if "postfix" not in group.keys():
 		if "suffix" in globals.keys() and globals["suffix"] != "" and not str.isspace(globals["suffix"]):
 			group["postfix"] = globals["suffix"]
-		else:
+		elif "postfix" in globals.keys() and not str.isspace(globals["postfix"]):
 			group["postfix"] = globals["postfix"]
 	return group
 
@@ -219,7 +219,7 @@ def main():
 	apps_sources_tpl_path = None
 	quiet = False
 
-	argparser = argparse.ArgumentParser(description = "Generates Config Apps for Splunk")
+	argparser = argparse.ArgumentParser(description = "Generates Config Apps for Splunk scripts")
 
 	argparser.add_argument( "config", help = "Configuration file")
 	argparser.add_argument( "out_path", help = "Path where resulting apps will be written")
