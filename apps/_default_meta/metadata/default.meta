@@ -12,6 +12,6 @@ export	= system
 export	= none
 		{%-endif%}
 	{%-endif%}
-	{%- if permission.owner is defined %}	
+	{%- if permission.owner is defined %}
 owner	= {{permission.owner}}{%-endif%}
 {%endfor%}
